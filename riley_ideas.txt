@@ -73,7 +73,7 @@
         - hist
     - ggplot
 
-7. allude to useful tools we don't have time to cover
+7. brief allusion + links to useful tools that we don't have time to cover
     - git, github
     - styler
     - pre-commit
@@ -82,3 +82,14 @@
     - rig
     - brew/other package manager
     - containers i.e. podman, docker
+
+
+
+
+
+- hello world
+- data types & structures
+- dataset manipulation
+- functions and packages
+- control flow
+- plotting
