@@ -72,4 +72,13 @@
         - xy
         - hist
     - ggplot
-        - 
+
+7. allude to useful tools we don't have time to cover
+    - git, github
+    - styler
+    - pre-commit
+    - testthat
+    - renv 
+    - rig
+    - brew/other package manager
+    - containers i.e. podman, docker
