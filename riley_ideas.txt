@@ -93,3 +93,14 @@
 - functions and packages
 - control flow
 - plotting
+
+
+
+GENERAL IDEAS:
+    - more exercises but they're really small
+    - longer presentation with near-constant participation/exercises
+    - one fill-in-the-blank type thing at end of each small module?
+    - maybe the occasional "implement this yourself" type thing
+        - that follows REALLY closely to the fill-in-the-blank one
+    - less stats more CS
+    - be nitpicky about word choice, will make it easier for students to find help online

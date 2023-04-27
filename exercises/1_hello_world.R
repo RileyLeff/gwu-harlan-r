@@ -5,9 +5,6 @@
 # assign variables
 x <- 5
 
-# what will x be?
+# what will x evaluate to?
 y <- x
 y <- 6
-
-# execute code
-
