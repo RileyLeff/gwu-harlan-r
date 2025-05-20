@@ -6,4 +6,4 @@
 # 3. Print b.
 # 4. Use ?plot to open the help file; list two arguments the function accepts.
 #
-# Save your work, then run source("challenge.R") in the console to verify output.
+# Save your work, then run source("exercises/1_hello_world/challenge.R") in the console to verify output.

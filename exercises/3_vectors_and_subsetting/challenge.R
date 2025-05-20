@@ -10,5 +10,6 @@
 #
 # 3. Let x <- 1:6.  Add c(10, 20) to x and record the warning message.
 #    Why does it appear?
+# this one is broken in some edge cases
 #
 # Write your code below, save the file, then run source("challenge.R").
