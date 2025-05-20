@@ -3,10 +3,9 @@
 #Part 1: RStudio 101
 
 #Welcome to R Studio!
-#this is a script, saved as a .R file. While you can execute commands directly in the 
-#console below, saving your code as a script allows you to come back to it and see what you 
+#this is a script, saved as a .R file. While you can execute commands directly in the
+#console below, saving your code as a script allows you to come back to it and see what you
 #did at any time
-
 
 # Annotating code
 
@@ -14,15 +13,8 @@
 # this text, but these notes will help you later to remember what is happening in your code
 
 #Exercise 1.1:
-#Add three lines of notes below, stating what you had for breakfast today, the weather 
-#outside and your favorite marine organism. 
-
-
-
-
-
-
-
+#Add three lines of notes below, stating what you had for breakfast today, the weather
+#outside and your favorite marine organism.
 
 # Executing code
 
@@ -32,11 +24,7 @@
 #Solve the following equation by copy/pasting it onto a new line
 #w/o a hashtag, and executing the script : 453*4.6/2+34
 
-
-453*4.6/2+34
-
-
-
+453 * 4.6 / 2 + 34
 
 
 #'<-' operator
@@ -45,13 +33,8 @@
 
 #Exercise 1.3: execute the following:
 
-test_score <- 34/35*100
+test_score <- 34 / 35 * 100
 test_score
-
-
-
-
-
 
 
 #When you've reached this point, save the script as practice_YOURNAME.R, place your "finished" post-it note on your computer, and wait for everyone to finish.
@@ -77,9 +60,7 @@ setwd("/Users/AndreaLangeland/Desktop/Rfiles")
 setwd("C:/Users/AndreaLangeland/Desktop/Rfiles")
 #Alternatively go to Session -> Set Working directory -> To source file location
 
-
 getwd()
-
 
 
 # Step 2: read in the data
@@ -119,10 +100,6 @@ str(data)
 ?str
 #What information did these functions provide?
 
-
-
-
-
 #Visualizing data
 
 #you should also do some preliminary graphing to get a sense of your data
@@ -131,15 +108,14 @@ str(data)
 #Exercise 3.2:
 #create the following plots (look at the documentation for the functions) and take a look at your data. From these plots, do you think canopy cover and disturbance affect caterpillar density? Does it look like there are any outliers
 
-boxplot(abundance ~ disturbance, data=data)
+boxplot(abundance ~ disturbance, data = data)
 ?boxplot
 
 
-plot(abundance ~ canopy_cover, data=data)
+plot(abundance ~ canopy_cover, data = data)
 #This plot can also be plotted using the following function. This time you do not have to type out "data=data" because you are specifying that "canopy_cover" is pulled from "data" using "$".
-plot(data$canopy_cover,data$abundance)
+plot(data$canopy_cover, data$abundance)
 ?plot
-
 
 
 #Statistical Assumptions
@@ -151,9 +127,8 @@ shapiro.test(data$abundance)
 ?shapiro.test
 #note that to just look at the abundance variable, we call our data file with a "$" and then the variable name
 
-
-# we can also assess normality visually by looking at a Q-Q plot- a scatter that compares #the data to a perfect normal distribution. The scatter should lie as close to the line as #possible with no obvious pattern coming away from the line for the data to be considered 
-# normally distributed. 
+# we can also assess normality visually by looking at a Q-Q plot- a scatter that compares #the data to a perfect normal distribution. The scatter should lie as close to the line as #possible with no obvious pattern coming away from the line for the data to be considered
+# normally distributed.
 qqnorm(data$abundance)
 qqline(data$abundance)
 
@@ -169,7 +144,6 @@ leveneTest(data$abundance, group = data$disturbance)
 ?leveneTest
 
 
-
 #When you've reached this point, save the script then place your "finished" post-it note on your computer, and wait for everyone to finish.
 ###########################################################################################
 
@@ -177,9 +151,8 @@ leveneTest(data$abundance, group = data$disturbance)
 #Exercise 4
 #Run the following code to do an ANOVA. Based on the summary of the model, what are our findings?
 
-model1 <- aov(abundance ~ disturbance * canopy_cover, data= data)
+model1 <- aov(abundance ~ disturbance * canopy_cover, data = data)
 summary(model1)
-
 
 
 #When you've reached this point, save the script then place your "finished" post-it note on your computer, and wait for everyone to finish.
@@ -189,11 +162,11 @@ summary(model1)
 
 # In part III we did some initial graphing using the boxplot() and plot() functions
 
-boxplot(abundance ~ disturbance, data=data)
+boxplot(abundance ~ disturbance, data = data)
 ?boxplot
 
 
-plot(data$canopy_cover,data$abundance)
+plot(data$canopy_cover, data$abundance)
 ?plot
 
 
@@ -205,21 +178,19 @@ library(ggplot2)
 #Here are the two plots I demonstrated in the powerpoint. Execute the code for them and make #sure it works, and that you understand how each component in the function is contributing to the graph output
 
 #version 1
-ggplot(data, aes(x=canopy_cover,y=abundance)) +
+ggplot(data, aes(x = canopy_cover, y = abundance)) +
   geom_point()
 
 
 #version 2
-ggplot(data, aes(x=canopy_cover,y=abundance, color=disturbance)) +
+ggplot(data, aes(x = canopy_cover, y = abundance, color = disturbance)) +
   geom_point()
-
 
 #Exercise 5.2:
 #Attempt to re-create the figure on the powerpoint using a modified version of the function we've been using.
 
-#HINT: you'll need the following elements: 
+#HINT: you'll need the following elements:
 #functions:levels()
 #ggplot elements:geom_smooth(),labs(),scale_color_manual(),theme_minimal()
 
 #Use this guide to help http://www.sthda.com/english/wiki/ggplot2-scatter-plots-quick-start-guide-r-software-and-data-visualization
-

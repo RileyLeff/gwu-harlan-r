@@ -4,10 +4,10 @@
 
 # what is CRAN?
 # install.packages() example
-    # don't you dare install something in a script
+# don't you dare install something in a script
 # other places/ways to get packages
 
 # importing stuff from external libraries
-    # beware the namespace collision!
-    # library() vs require() vs ::
-    # R has no module system!
+# beware the namespace collision!
+# library() vs require() vs ::
+# R has no module system!
