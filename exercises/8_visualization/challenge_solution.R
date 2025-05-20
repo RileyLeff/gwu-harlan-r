@@ -2,7 +2,7 @@
 
 ## 1
 data(mtcars)                    # built-in
-png_path <- "output/mtcars_plots.pdf"
+pdf_path <- "output/mtcars_plots.pdf"
 dir.create("output", showWarnings = FALSE)
 
 ## 2 & 3

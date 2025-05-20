@@ -11,4 +11,7 @@
 # 3. Create an empty object e <- NULL. Verify that length(e) == 0,
 #    then try c(e, 5). What class is the result?
 #
+# 4. Create an ordered factor called temp with values  "low","med","high","med".
+#    Confirm that temp[3]  >  temp[1]  is TRUE.
+#
 # Write your code below, save, and run source("challenge.R") to test.

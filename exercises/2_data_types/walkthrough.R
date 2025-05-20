@@ -38,6 +38,17 @@ is.null(null_obj)             # TRUE
 length(null_obj)              # 0
 typeof(null_obj)              # "NULL"
 
+## 3a. Factors (categorical data)  ----------------------------------------
+
+gender <- factor(c("male", "female", "female", "male"))
+levels(gender)            # "female" "male"
+as.numeric(gender)        # underlying integer codes 2 1 1 2
+
+# Ordered factors
+sizes <- factor(c("S","M","L","M"),
+                levels = c("S","M","L"), ordered = TRUE)
+sizes[2] > sizes[1]       # TRUE because ordering is defined
+
 ## 4. Everything is a vector ----------------------------------------------
 x <- 1           # length-1 numeric vector
 length(x)        # 1
