@@ -1,77 +1,205 @@
-# imaginaryPhyloTools_fixed.R ---------------------------------------------
-if (!requireNamespace("ape", quietly = TRUE))
-  stop("package 'ape' not installed")
-if (!requireNamespace("phytools", quietly = TRUE))
-  stop("package 'phytools' not installed")
+############################################################################
+##  imaginaryPhyloTools.R   (teaching edition, 2025-05-20)
+############################################################################
+if (
+  !requireNamespace("ape", quietly = TRUE) ||
+    !requireNamespace("phytools", quietly = TRUE)
+)
+  stop("Packages 'ape' and 'phytools' are required.")
 
 library(ape)
 library(phytools)
+library(ggplot2)
+library(viridisLite)
 
-generate_creature_lambda_data <- function(
-  student_id,
-  num_creatures = 20,
-  lambda_method = c("internal", "geiger", "phylolm"),
-  local_seed = TRUE
-) {
-  ## -------- optional local RNG scope ------------------------------------
-  if (local_seed) {
-    old_seed <- if (exists(".Random.seed", .GlobalEnv, inherits = FALSE))
-      get(".Random.seed", .GlobalEnv) else NULL
-    on.exit(
-      {
-        if (!is.null(old_seed))
-          assign(".Random.seed", old_seed, envir = .GlobalEnv)
-      },
-      add = TRUE
-    )
-    set.seed(student_id)
+############################  HIDDEN UTILITIES  ############################
+# Opaque class id:   0 → high λ , 1 → mid λ , 2 → low λ
+.class_id <- function(id) {
+  # cheap hash: 3 least-sig bits of a linear-congruential transform
+  ((id * 2654435761) %% 2^32) %% 3
+}
+
+# Instructor key: exact λ that should be recovered
+.expected_lambda <- function(id, lam_mid = 0.5) {
+  c(1, lam_mid, 0)[.class_id(id) + 1]
+}
+
+############################  PUBLIC  API  #################################
+#' Generate a deterministic teaching tree and a single trait
+#'
+#' Creates a random bifurcating phylogeny whose topology and branch
+#' lengths are reproducible from the integer \code{id}, then simulates
+#' **one** continuous trait under a pre-assigned phylogenetic-signal
+#' class:
+#' * **High**  (\eqn{\lambda\approx1})  – Brownian motion on the unscaled tree.
+#' * **Mid**   (\eqn{\lambda\approx lam\_mid}) – Brownian motion on a
+#'   tree whose internal branches are multiplied by \code{lam_mid}.
+#' * **Low**   (\eqn{\lambda\approx0}) – i.i.d. white noise (no
+#'   phylogenetic signal).
+#' The class is determined by a hidden hash of \code{id}, so students
+#' cannot simply take \code{id \% 3}.
+#'
+#' @param id        Integer.  Determines both the tree topology and the
+#'                  hidden phylogenetic-signal class.
+#' @param n_species Number of tips to simulate.  Default \code{50}.
+#' @param lam_mid   Numeric \eqn{(0<\lambda<1)} used for the
+#'                  intermediate-signal class.  Default \code{0.5}.
+#'
+#' @return A list with components
+#'   \describe{
+#'     \item{\code{tree}}{An object of class \code{phylo}.}
+#'     \item{\code{trait}}{Named numeric vector of length
+#'       \code{n_species}.}
+#'   }
+#' @examples
+#' dat <- generate_tree(id = 17, n_species = 60)
+#' str(dat)
+#' @export
+generate_tree <- function(id, n_species = 50, lam_mid = 0.5) {
+  set.seed(id) # reproducible topology
+  tip.names <- generate_species_names(n_species) # <- NEW
+  tree <- rtree(n_species, tip.label = tip.names)
+
+  cls <- .class_id(id)
+  if (cls == 0) {
+    # HIGH signal (λ≈1)
+    trait <- fastBM(tree)
+  } else if (cls == 1) {
+    # MID signal (λ≈lam_mid)
+    trait <- fastBM(phytools:::lambdaTree(tree, lam_mid))
+  } else {
+    # LOW signal (white noise)
+    trait <- rnorm(n_species)
   }
 
-  lambda_method <- match.arg(lambda_method)
-  true_lambda <- round(runif(1), 2) # U(0,1) but reproducible
+  names(trait) <- tip.names
 
-  ## -------- species names -----------------------------------------------
-  pref <- c("Glim", "Snarp", "Woot", "Zorp", "Floo", "Gibble")
-  suff <- c("lefoot", "wing", "snout", "bert", "zoot", "skib")
-  tips <- make.unique(
-    paste0(
-      sample(pref, num_creatures, TRUE),
-      sample(suff, num_creatures, TRUE),
-      seq_len(num_creatures)
+  list(tree = tree, trait = trait, trait_name = generate_trait_name(), id = id)
+}
+
+#' Plot a phylogeny with a continuous trait using \pkg{ggtree}
+#'
+#' Produces a colour-gradient tree plot with 45-degree tip labels and a
+#' single Viridis colour bar below the figure.  **No value of
+#' \eqn{\lambda} is shown in the title** so students must estimate it
+#' themselves.
+#'
+#' @param tree        A \code{phylo} object.
+#' @param trait       Named numeric vector; names must match the tip
+#'                    labels in \code{tree}.
+#' @param trait_name  A character value (string).
+#' @param id          Put Model ID as a string here for plotting. Defaults to "NO NAME".
+#' @param label_angle Rotation angle for tip labels (degrees).
+#'                    Default \code{45}.
+#' @param label_size  Font size for tip labels.  Default \code{3}.
+#'
+#' @return A \code{ggplot} object (class \code{gg} / \code{ggtree}).
+#' @examples
+#' dat <- generate_tree(3)
+#' p <- plot_tree(dat$tree, dat$trait)
+#' p
+#' @export
+plot_tree <- function(
+  tree,
+  trait,
+  trait_name,
+  id = "NO NAME",
+  label_angle = 0,
+  label_size = 3
+) {
+  if (
+    !requireNamespace("ggtree", quietly = TRUE) ||
+      !requireNamespace("viridisLite", quietly = TRUE)
+  )
+    stop("Need packages 'ggtree' and 'viridisLite' to plot.")
+
+  library(ggtree)
+  library(viridisLite)
+
+  ggtree(tree, aes(color = trait), size = 0.8) %<+%
+    data.frame(label = names(trait), trait = trait) +
+    geom_tiplab(
+      angle = label_angle,
+      hjust = 0,
+      size = label_size,
+      offset = 0.02 * max(nodeHeights(tree))
+    ) +
+    scale_color_viridis_c(name = trait_name) +
+    theme_tree2() +
+    theme(legend.position = "bottom") +
+    ggtitle(paste("Phylogenetic Tree For Lineage #", id, sep = ""))
+}
+
+#' Maximum-likelihood Pagel \eqn{\lambda} and LR P-value
+#'
+#' Convenience wrapper around \code{phytools::phylosig()} that extracts
+#' just the two headline statistics needed for the assignment.
+#'
+#' @param tree  A \code{phylo} object (unscaled).
+#' @param trait Named numeric vector; names must match \code{tree$tip.label}.
+#'
+#' @return A list with two elements
+#'   \describe{
+#'     \item{\code{lambda_ML}}{Maximum-likelihood estimate of
+#'       Pagel \eqn{\lambda}.}
+#'     \item{\code{p_value}}{Likelihood-ratio test P-value for
+#'       \eqn{H_0:\lambda = 0}.}
+#'   }
+#' @examples
+#' dat <- generate_tree(42, n_species = 80)
+#' get_stats(dat$tree, dat$trait)
+#' @export
+get_stats <- function(tree, trait) {
+  fit <- phylosig(tree, trait, method = "lambda", test = TRUE)
+  list(lambda_ML = fit$lambda, p_value = fit$P)
+}
+
+############################################################################
+#' Generate whimsical species names
+#'
+#' Creates \code{n} unique character strings by randomly pairing
+#' predefined prefixes and suffixes, then appending a running index.
+#' The random seed is *not* set inside the function; callers who need
+#' reproducibility should call \code{set.seed()} beforehand.
+#'
+#' @param n          Integer: number of names to return.
+#' @param prefixes   Character vector of syllable prefixes.  Default
+#'                   set contains onomatopoeic alien sounds.
+#' @param suffixes   Character vector of syllable suffixes.
+#'
+#' @return A character vector of length \code{n} with no duplicated
+#'         entries.
+#' @examples
+#' set.seed(1); generate_species_names(3)
+#' @export
+generate_species_names <- function(
+  n,
+  prefixes = c("Glim", "Snarp", "Woot", "Zorp", "Floo", "Gibble"),
+  suffixes = c("lefoot", "wing", "snout", "bert", "zoot", "skib")
+) {
+  make.unique(
+    sprintf(
+      "%s%s%d",
+      sample(prefixes, n, TRUE),
+      sample(suffixes, n, TRUE),
+      seq_len(n)
     )
   )
+}
 
-  ## -------- base tree *without* tampering with ape::compute.brlen --------
-  base_tree <- rtree(num_creatures, tip.label = tips)
-
-  ## -------- optional Grafen rescale (safe) ------------------------------
-  #  ape::compute.brlen() needs method="Grafen" *exactly*:
-  base_tree <- compute.brlen(base_tree, method = "Grafen", power = 0.5)
-
-  ## -------- Pagel λ transformation --------------------------------------
-  lambda_tree <- switch(
-    lambda_method,
-    internal = phytools:::lambdaTree(base_tree, true_lambda),
-    geiger = {
-      if (!requireNamespace("geiger", quietly = TRUE))
-        stop("install.packages('geiger') or choose lambda_method='internal'")
-      geiger::rescale(base_tree, model = "lambda", lambda = true_lambda)
-    },
-    phylolm = {
-      if (!requireNamespace("phylolm", quietly = TRUE))
-        stop("install.packages('phylolm') or choose lambda_method='internal'")
-      phylolm::transf.branch.lengths(
-        base_tree,
-        model = "lambda",
-        parameters = list(lambda = true_lambda)
-      )$tree
-    }
-  )
-
-  ## -------- simulate trait ----------------------------------------------
-  trait <- fastBM(lambda_tree, sig2 = runif(1, 0.5, 2), a = runif(1, -1, 1))
-
-  trait_name <- sample(
+############################################################################
+#' Pick a whimsical trait name
+#'
+#' Returns one random label from a fixed pool of light-hearted trait
+#' descriptions.  Intended purely for flavour; the chosen name has no
+#' impact on downstream calculations.
+#'
+#' @return A length-1 character vector.
+#' @examples
+#' set.seed(2); generate_trait_name()
+#' @export
+generate_trait_name <- function() {
+  sample(
     c(
       "Rizz_Frequency_Hz",
       "Simp_Devotion_Scale",
@@ -81,121 +209,4 @@ generate_creature_lambda_data <- function(
     ),
     1
   )
-
-  list(
-    student_id = student_id,
-    base_tree = base_tree,
-    lambda_tree = lambda_tree,
-    trait_name = trait_name,
-    trait_data = trait,
-    true_target_lambda = true_lambda
-  )
-}
-
-###############################################################################
-#' Plot a λ-scaled phylogeny with a continuous trait mapped to branch colours
-#'
-#' A ggplot/ggtree wrapper that paints every branch of a phylogeny according to
-#' a continuous trait, adds 45-degree tip labels, and places a single Viridis
-#' colour bar beneath the tree.
-#'
-#' The function **never alters branch lengths**; extra room for tip labels is
-#' supplied with an \code{offset} in \code{geom_tiplab()}, leaving the biology
-#' intact.
-#'
-#' @param tree          A \code{phylo} object whose branch lengths already
-#'                      reflect any Pagel‐λ transformation.
-#' @param trait         Named numeric vector; names **must match**
-#'                      \code{tree$tip.label}.
-#' @param trait_name    Character string for the colour-bar title.
-#' @param lambda_value  Numeric; the λ applied to \code{tree}. Printed in the
-#'                      plot title.  Default \code{NA} (omits λ from title).
-#' @param label_angle   Rotation angle (degrees) for tip labels. Default \code{45}.
-#' @param label_size    Font size for tip labels (ggplot2 size units). Default \code{3}.
-#' @param label_offset  Horizontal distance (in branch-length units) between the
-#'                      terminal node and its label.  By default, 2 % of the tree
-#'                      height (\code{0.02 * max(nodeHeights(tree))}).
-#'
-#' @return A \code{ggplot} object that can be printed, modified, or exported
-#'         with \code{ggsave()}.
-#'
-#' @examples
-#' p <- plot_creature_trait(tree         = dat$lambda_tree,
-#'                          trait        = dat$trait_data,
-#'                          trait_name   = dat$trait_name,
-#'                          lambda_value = dat$true_target_lambda)
-#' print(p)
-#'
-#' @export
-###############################################################################
-plot_creature_trait <- function(
-  tree,
-  trait,
-  trait_name,
-  lambda_value = NA_real_,
-  label_angle = 45,
-  label_size = 3,
-  label_offset = NULL
-) {
-  ## ---- dependencies -------------------------------------------------------
-  for (pkg in c("ggtree", "treeio", "viridisLite")) {
-    if (!requireNamespace(pkg, quietly = TRUE))
-      stop("plot_creature_trait() requires package '", pkg, "'.")
-  }
-  library(ggtree) # loads ggplot2 internally
-  library(treeio)
-  library(ggplot2)
-  library(viridisLite) # colour palette
-  library(patchwork) # easy plot layout
-  library(tibble) # for enframe()
-  library(phytools)
-
-  ## ---- quick checks -------------------------------------------------------
-  if (!inherits(tree, "phylo")) stop("'tree' must be a phylo object.")
-  if (!is.numeric(trait) || is.null(names(trait)))
-    stop("'trait' must be a *named* numeric vector.")
-  if (!all(tree$tip.label %in% names(trait)))
-    stop("Some tip labels are missing in 'trait'.")
-
-  ## ---- default offset: 2 % of tree height --------------------------------
-  if (is.null(label_offset)) {
-    tree_height <- max(nodeHeights(tree))
-    label_offset <- 0.02 * tree_height
-  }
-
-  ## ---- merge trait with tree data ----------------------------------------
-  trait_df <- data.frame(label = names(trait), value = as.numeric(trait))
-
-  g <- ggtree(tree, aes(color = value), size = 0.8) %<+%
-    trait_df +
-    geom_tiplab(
-      angle = label_angle,
-      hjust = 0,
-      size = label_size,
-      offset = label_offset
-    ) +
-
-    scale_color_viridis_c(
-      name = trait_name,
-      guide = guide_colourbar(
-        barheight = grid::unit(4, "mm"),
-        barwidth = grid::unit(90, "mm"),
-        title.position = "top",
-        title.hjust = 0.5,
-        label.position = "bottom"
-      )
-    ) +
-
-    ggtitle(
-      if (is.na(lambda_value)) trait_name else
-        sprintf("%s (λ = %.2f)", trait_name, lambda_value)
-    ) +
-
-    theme_tree2() +
-    theme(
-      legend.position = "bottom",
-      plot.title = element_text(hjust = 0.5, face = "bold")
-    )
-
-  return(g)
 }
