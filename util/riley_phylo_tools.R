@@ -1,5 +1,5 @@
 ############################################################################
-##  imaginaryPhyloTools.R   (teaching edition, 2025-05-20)
+##  riley_phylo_tools.R   (teaching edition, 2025-05-20)
 ############################################################################
 if (
   !requireNamespace("ape", quietly = TRUE) ||
