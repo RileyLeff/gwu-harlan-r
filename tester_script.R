@@ -1,52 +1,45 @@
-## tester_imaginaryPhyloTools.R  ------------------------------
+## tester_imaginaryPhyloTools.R  ------------------------
 
-## 1.  Load your utility functions
-source("util/imaginaryPhyloTools.R") # adjust path if needed
+source("util/imaginaryPhyloTools.R") # same folder
 
-## 2.  Generate a test data-set
-# pick any integer seed – students might use the last 3 digits of their ID
-test_dat <- generate_creature_lambda_data(
-  student_unique_value = 867,
-  num_creatures = 25,
-  lambda_method = "internal"
-)
-cat("\nTrue λ used to rescale the tree:", test_dat$true_target_lambda, "\n\n")
+dat <- generate_creature_lambda_data(867, num_creatures = 25, lambda_method = "internal")
 
-## quick sanity check on the trait vector
-print(head(test_dat$trait_data))
+cat("True λ =", dat$true_target_lambda, "| trait =", dat$trait_name, "\n")
 
-## 3.  Basic tree plot (labels only) --------------------------
-library(phytools) # provides plotTree() wrapper
+# ---------- plain tree ----------
 plotTree(
-  test_dat$lambda_tree,
-  fsize = 0.7,
-  lwd = 1.2,
-  pts = FALSE,
-  main = "Sample tree rescaled by Pagel's λ"
+  dat$lambda_tree,
+  fsize = 0.75,
+  lwd = 1.3,
+  main = sprintf("λ-scaled tree (λ = %.2f)", dat$true_target_lambda)
 )
 
-## 4.  Fancy continuous-trait map -----------------------------
-# colour the branches by the simulated trait
-# (contMap interpolates ancestral states and draws a gradient)
-cm <- contMap(
-  test_dat$lambda_tree,
-  test_dat$trait_data,
-  legend = FALSE,
-  fsize = 0.6,
-  plot = FALSE
-) # build first so we can swap in viridis
+# ---------- coloured trait map ----------
+cm <- contMap(dat$lambda_tree, dat$trait_data, plot = FALSE, legend = FALSE)
 
-# replace default colours with viridis if you have it installed
+## replace palette with viridis (continuous & CVD-friendly) ----
 if (requireNamespace("viridisLite", quietly = TRUE)) {
-  cm$cols[] <- viridisLite::viridis(100)
+  ncols <- length(cm$cols) # avoid recycling warning / striping
+  cm$cols[] <- viridisLite::viridis(ncols)
 }
 
-plot(cm, fsize = 0.6, lwd = 3)
+plot(cm, fsize = 0.6, lwd = 3, main = dat$trait_name, legend = FALSE)
+
+## draw a fixed-position colour bar (no clicking) --------------
+usr <- par("usr") # plot coordinates
+bar_len <- 0.12 * (usr[2] - usr[1])
+x_left <- usr[1] + 0.04 * (usr[2] - usr[1])
+y_bottom <- usr[3] - 0.06 * (usr[4] - usr[3])
+
 add.color.bar(
-  0.05,
+  bar_len,
   cm$cols,
-  title = test_dat$trait_name,
-  lims = cm$lims,
-  fsize = 0.7,
-  subtitle = "lower  ←   trait value   →  higher"
+  title = "trait value",
+  lims = round(cm$lims, 2),
+  digits = 2,
+  prompt = FALSE,
+  x = x_left,
+  y = y_bottom,
+  fsize = 0.8,
+  subtitle = sprintf("λ = %.2f", dat$true_target_lambda)
 )
